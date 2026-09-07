@@ -1,6 +1,5 @@
-// Замени на свой, чтобы получить независимый от других набор данных.
-// "боевая" версия инстапро лежит в ключе prod
-const personalKey = "prod";
+// api.js
+const personalKey = "maxim-fedoretc";
 const baseHost = "https://webdev-hw-api.vercel.app";
 const postsHost = `${baseHost}/api/v1/${personalKey}/instapro`;
 
@@ -15,7 +14,24 @@ export function getPosts({ token }) {
       if (response.status === 401) {
         throw new Error("Нет авторизации");
       }
+      return response.json();
+    })
+    .then((data) => {
+      return data.posts;
+    });
+}
 
+export function getUserPosts({ token, userId }) {
+  return fetch(`${postsHost}/user-posts/${userId}`, {
+    method: "GET",
+    headers: {
+      Authorization: token,
+    },
+  })
+    .then((response) => {
+      if (response.status === 401) {
+        throw new Error("Нет авторизации");
+      }
       return response.json();
     })
     .then((data) => {
@@ -55,7 +71,6 @@ export function loginUser({ login, password }) {
   });
 }
 
-// Загружает картинку в облако, возвращает url загруженной картинки
 export function uploadImage({ file }) {
   const data = new FormData();
   data.append("file", file);
@@ -64,6 +79,69 @@ export function uploadImage({ file }) {
     method: "POST",
     body: data,
   }).then((response) => {
+    return response.json();
+  });
+}
+
+// api.js (только блок addPost)
+export function addPost({ token, description, imageUrl }) {
+  // Валидация
+  if (!description || !imageUrl) {
+    return Promise.reject(new Error("Заполните все поля"));
+  }
+
+  const body = JSON.stringify({ description, imageUrl });
+
+  console.log("📤 Отправляю JSON без Content-Type:", body);
+
+  return fetch(postsHost, {
+    method: "POST",
+    headers: {
+      Authorization: token,
+      // Content-Type НЕ ДОБАВЛЯЕМ
+    },
+    body: body,
+  })
+    .then((response) => {
+      return response.text().then((text) => {
+        console.log("✅ Ответ сервера:", text);
+        try {
+          const data = JSON.parse(text);
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          return data;
+        } catch (e) {
+          throw new Error("Сервер вернул ошибку: " + text);
+        }
+      });
+    });
+}
+
+export function likePost({ token, postId }) {
+  return fetch(`${postsHost}/${postId}/like`, {
+    method: "POST",
+    headers: {
+      Authorization: token,
+    },
+  }).then((response) => {
+    if (response.status === 401) {
+      throw new Error("Нет авторизации");
+    }
+    return response.json();
+  });
+}
+
+export function dislikePost({ token, postId }) {
+  return fetch(`${postsHost}/${postId}/dislike`, {
+    method: "POST",
+    headers: {
+      Authorization: token,
+    },
+  }).then((response) => {
+    if (response.status === 401) {
+      throw new Error("Нет авторизации");
+    }
     return response.json();
   });
 }

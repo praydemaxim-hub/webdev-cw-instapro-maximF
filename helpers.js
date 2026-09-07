@@ -1,8 +1,9 @@
+// helpers.js
 export function saveUserToLocalStorage(user) {
   window.localStorage.setItem("user", JSON.stringify(user));
 }
 
-export function getUserFromLocalStorage(user) {
+export function getUserFromLocalStorage() {
   try {
     return JSON.parse(window.localStorage.getItem("user"));
   } catch (error) {
@@ -10,6 +11,6 @@ export function getUserFromLocalStorage(user) {
   }
 }
 
-export function removeUserFromLocalStorage(user) {
+export function removeUserFromLocalStorage() {
   window.localStorage.removeItem("user");
 }

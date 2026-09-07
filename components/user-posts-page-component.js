@@ -1,7 +1,6 @@
-// components/posts-page-component.js
-import { USER_POSTS_PAGE } from "../routes.js";
+// components/user-posts-page-component.js
 import { renderHeaderComponent } from "./header-component.js";
-import { posts, goToPage, user } from "../index.js";
+import { goToPage, user } from "../index.js";
 import { likePost, dislikePost } from "../api.js";
 
 const getToken = () => {
@@ -20,14 +19,18 @@ function formatDate(isoString) {
   return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
-export function renderPostsPageComponent({ appEl }) {
-  console.log("Посты для отображения:", posts);
+export function renderUserPostsPageComponent({ appEl, userId, posts }) {
+  const userName = posts.length > 0 ? posts[0].user.name : "Пользователь";
+  const userImage =
+    posts.length > 0
+      ? posts[0].user.imageUrl
+      : "https://www.imgonline.com.ua/examples/bee-on-daisy.jpg";
 
   if (!posts || posts.length === 0) {
     appEl.innerHTML = `
       <div class="page-container">
         <div class="header-container"></div>
-        <p style="text-align:center; margin-top:40px;">Постов пока нет</p>
+        <p style="text-align:center; margin-top:40px;">У пользователя пока нет постов</p>
       </div>
     `;
     renderHeaderComponent({
@@ -42,8 +45,8 @@ export function renderPostsPageComponent({ appEl }) {
       const postDate = formatDate(post.createdAt);
       const isLiked = post.isLiked || false;
       const likesCount = post.likes?.length || 0;
-      const userName = post.user?.name || "Неизвестный";
-      const userImage =
+      const userNamePost = post.user?.name || "Неизвестный";
+      const userImagePost =
         post.user?.imageUrl ||
         "https://www.imgonline.com.ua/examples/bee-on-daisy.jpg";
       const imageUrl = post.imageUrl || "https://via.placeholder.com/500x500?text=Нет+фото";
@@ -51,8 +54,8 @@ export function renderPostsPageComponent({ appEl }) {
       return `
         <li class="post" data-post-id="${post.id}">
           <div class="post-header" data-user-id="${post.user?.id || ""}">
-              <img src="${userImage}" class="post-header__user-image">
-              <p class="post-header__user-name">${userName}</p>
+              <img src="${userImagePost}" class="post-header__user-image">
+              <p class="post-header__user-name">${userNamePost}</p>
           </div>
           <div class="post-image-container">
             <img class="post-image" src="${imageUrl}">
@@ -70,7 +73,7 @@ export function renderPostsPageComponent({ appEl }) {
             </p>
           </div>
           <p class="post-text">
-            <span class="user-name">${userName}</span>
+            <span class="user-name">${userNamePost}</span>
             ${post.description || ""}
           </p>
           <p class="post-date">
@@ -84,6 +87,10 @@ export function renderPostsPageComponent({ appEl }) {
   const appHtml = `
     <div class="page-container">
       <div class="header-container"></div>
+      <div class="posts-user-header">
+        <img src="${userImage}" class="posts-user-header__user-image">
+        <p class="posts-user-header__user-name">${userName}</p>
+      </div>
       <ul class="posts">
         ${postsHtml}
       </ul>
@@ -99,7 +106,7 @@ export function renderPostsPageComponent({ appEl }) {
   // Переход на страницу пользователя
   for (let userEl of document.querySelectorAll(".post-header")) {
     userEl.addEventListener("click", () => {
-      goToPage(USER_POSTS_PAGE, {
+      goToPage("user-posts", {
         userId: userEl.dataset.userId,
       });
     });
