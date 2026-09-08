@@ -1,4 +1,3 @@
-// components/user-posts-page-component.js
 import { renderHeaderComponent } from "./header-component.js";
 import { goToPage, user, posts as globalPosts } from "../index.js";
 import { likePost, dislikePost } from "../api.js";

@@ -1,4 +1,3 @@
-// utils.js
 export function escapeHtml(str) {
   if (!str) return "";
   return str
