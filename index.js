@@ -116,7 +116,6 @@ const renderApp = (data) => {
     return renderAddPostPageComponent({
       appEl,
       onAddPostClick({ description, imageUrl }) {
-        console.log("Получены данные:", { description, imageUrl });
         if (!description || !imageUrl) {
           alert("Заполните все поля и загрузите фото");
           return;

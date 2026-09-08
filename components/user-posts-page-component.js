@@ -1,7 +1,8 @@
 // components/user-posts-page-component.js
 import { renderHeaderComponent } from "./header-component.js";
-import { goToPage, user } from "../index.js";
+import { goToPage, user, posts as globalPosts } from "../index.js";
 import { likePost, dislikePost } from "../api.js";
+import { escapeHtml } from "../utils.js";
 
 const getToken = () => {
   const token = user ? `Bearer ${user.token}` : undefined;
@@ -45,11 +46,12 @@ export function renderUserPostsPageComponent({ appEl, userId, posts }) {
       const postDate = formatDate(post.createdAt);
       const isLiked = post.isLiked || false;
       const likesCount = post.likes?.length || 0;
-      const userNamePost = post.user?.name || "Неизвестный";
+      const userNamePost = escapeHtml(post.user?.name || "Неизвестный");
       const userImagePost =
         post.user?.imageUrl ||
         "https://www.imgonline.com.ua/examples/bee-on-daisy.jpg";
       const imageUrl = post.imageUrl || "https://via.placeholder.com/500x500?text=Нет+фото";
+      const safeDescription = escapeHtml(post.description || "");
 
       return `
         <li class="post" data-post-id="${post.id}">
@@ -61,12 +63,8 @@ export function renderUserPostsPageComponent({ appEl, userId, posts }) {
             <img class="post-image" src="${imageUrl}">
           </div>
           <div class="post-likes">
-            <button data-post-id="${post.id}" class="like-button ${
-        isLiked ? "-active-like" : ""
-      }">
-              <img src="./assets/images/${
-                isLiked ? "like-active.svg" : "like-not-active.svg"
-              }">
+            <button data-post-id="${post.id}" class="like-button ${isLiked ? "-active-like" : ""}">
+              <img src="./assets/images/${isLiked ? "like-active.svg" : "like-not-active.svg"}">
             </button>
             <p class="post-likes-text">
               Нравится: <strong>${likesCount}</strong>
@@ -74,7 +72,7 @@ export function renderUserPostsPageComponent({ appEl, userId, posts }) {
           </div>
           <p class="post-text">
             <span class="user-name">${userNamePost}</span>
-            ${post.description || ""}
+            ${safeDescription}
           </p>
           <p class="post-date">
             ${postDate}
@@ -89,7 +87,7 @@ export function renderUserPostsPageComponent({ appEl, userId, posts }) {
       <div class="header-container"></div>
       <div class="posts-user-header">
         <img src="${userImage}" class="posts-user-header__user-image">
-        <p class="posts-user-header__user-name">${userName}</p>
+        <p class="posts-user-header__user-name">${escapeHtml(userName)}</p>
       </div>
       <ul class="posts">
         ${postsHtml}
@@ -103,7 +101,6 @@ export function renderUserPostsPageComponent({ appEl, userId, posts }) {
     element: document.querySelector(".header-container"),
   });
 
-  // Переход на страницу пользователя
   for (let userEl of document.querySelectorAll(".post-header")) {
     userEl.addEventListener("click", () => {
       goToPage("user-posts", {
@@ -112,55 +109,49 @@ export function renderUserPostsPageComponent({ appEl, userId, posts }) {
     });
   }
 
-  // Лайки
   for (let likeButton of document.querySelectorAll(".like-button")) {
-    likeButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const postId = likeButton.dataset.postId;
-      const postIndex = posts.findIndex((p) => p.id === postId);
-      if (postIndex === -1) return;
+  likeButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const postId = likeButton.dataset.postId;
+    const postIndex = posts.findIndex((p) => p.id === postId);
+    if (postIndex === -1) return;
 
-      const currentPost = posts[postIndex];
-      const isLiked = currentPost.isLiked;
+    const currentPost = posts[postIndex];
+    const isLiked = currentPost.isLiked;
 
-      const likeAction = isLiked ? dislikePost : likePost;
+    const likeAction = isLiked ? dislikePost : likePost;
 
-      likeAction({ token: getToken(), postId })
-        .then(() => {
-          const updatedPost = { ...currentPost };
-          if (isLiked) {
-            updatedPost.likes = currentPost.likes.filter(
-              (like) => like.id !== user?.id
-            );
-            updatedPost.isLiked = false;
-          } else {
-            updatedPost.likes = [
-              ...currentPost.likes,
-              { id: user?.id, name: user?.name },
-            ];
-            updatedPost.isLiked = true;
-          }
-          posts[postIndex] = updatedPost;
+    likeAction({ token: getToken(), postId })
+      .then((response) => {
+        const updatedPost = response.post;
 
-          const likeImg = likeButton.querySelector("img");
-          const likesText = likeButton
-            .closest(".post-likes")
-            .querySelector(".post-likes-text strong");
-          const newLikesCount = updatedPost.likes.length;
+        posts[postIndex] = updatedPost;
 
-          likesText.textContent = String(newLikesCount);
-          if (updatedPost.isLiked) {
-            likeImg.src = "./assets/images/like-active.svg";
-            likeButton.classList.add("-active-like");
-          } else {
-            likeImg.src = "./assets/images/like-not-active.svg";
-            likeButton.classList.remove("-active-like");
-          }
-        })
-        .catch((error) => {
-          console.error(error);
-          alert(error.message);
-        });
-    });
-  }
+        // Синхронизация с глобальным массивом
+        const globalIndex = globalPosts.findIndex((p) => p.id === postId);
+        if (globalIndex !== -1) {
+          globalPosts[globalIndex] = updatedPost;
+        }
+
+        const likeImg = likeButton.querySelector("img");
+        const likesText = likeButton
+          .closest(".post-likes")
+          .querySelector(".post-likes-text strong");
+        const newLikesCount = updatedPost.likes.length;
+
+        likesText.textContent = String(newLikesCount);
+        if (updatedPost.isLiked) {
+          likeImg.src = "./assets/images/like-active.svg";
+          likeButton.classList.add("-active-like");
+        } else {
+          likeImg.src = "./assets/images/like-not-active.svg";
+          likeButton.classList.remove("-active-like");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        alert(error.message);
+      });
+  });
+}
 }

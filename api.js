@@ -83,28 +83,22 @@ export function uploadImage({ file }) {
   });
 }
 
-// api.js (только блок addPost)
 export function addPost({ token, description, imageUrl }) {
-  // Валидация
   if (!description || !imageUrl) {
     return Promise.reject(new Error("Заполните все поля"));
   }
 
   const body = JSON.stringify({ description, imageUrl });
 
-  console.log("📤 Отправляю JSON без Content-Type:", body);
-
   return fetch(postsHost, {
     method: "POST",
     headers: {
       Authorization: token,
-      // Content-Type НЕ ДОБАВЛЯЕМ
     },
     body: body,
   })
     .then((response) => {
       return response.text().then((text) => {
-        console.log("✅ Ответ сервера:", text);
         try {
           const data = JSON.parse(text);
           if (data.error) {
